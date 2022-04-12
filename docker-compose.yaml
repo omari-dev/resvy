@@ -1,10 +1,22 @@
-version: '3'
+version: '3.9'
 
 services:
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_DB=resvy_db
+      - POSTGRES_USER=resvy
+      - POSTGRES_PASSWORD=resvy
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U resvy -d resvy_db" ]
+      interval: 1s
+      timeout: 5s
+      retries: 5
   webapp:
     build: .
     ports:
       - "8000:8000"
+    entrypoint: ["bash", "entrypoint.sh"]
     command:
       - uvicorn
       - resvy.asgi:application
@@ -12,3 +24,15 @@ services:
       - "0.0.0.0"
       - --port
       - "8000"
+    environment:
+      - POSTGRES_NAME=resvy_db
+      - POSTGRES_USER=resvy
+      - POSTGRES_PASSWORD=resvy
+      - DB_HOST=db
+    links:
+      - db
+    depends_on:
+      db:
+        condition: service_healthy
+  redis:
+    image: redis:alpine
