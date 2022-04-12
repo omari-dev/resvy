@@ -36,10 +36,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Third apps
     'rest_framework',
     'rest_framework_simplejwt',
-    # Todo: split
+    'django_extensions',
+    # LOCAL_APPS
     'users',
+    'reservations'
 ]
 
 MIDDLEWARE = [

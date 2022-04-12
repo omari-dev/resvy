@@ -3,12 +3,14 @@ async-timeout==4.0.2
 click==8.1.2
 Deprecated==1.2.13
 Django==4.0.4
+django-extensions==3.1.5
 django-filter==21.1
 django-redis==5.2.0
 djangorestframework==3.13.1
 djangorestframework-simplejwt==5.1.0
 factory-boy==3.2.1
 Faker==13.3.4
+future==0.18.2
 h11==0.13.0
 Markdown==3.3.6
 packaging==21.3

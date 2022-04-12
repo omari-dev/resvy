@@ -25,5 +25,6 @@ urlpatterns = [
     path('v1/auth/token/verify/', TokenVerifyView.as_view(), name='verify-token'),
 
     path('v1/', include('users.urls'), name='users'),
+    path('v1/', include('reservations.urls'), name='reservations'),
 
 ]

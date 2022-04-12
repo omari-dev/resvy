@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_DB=test_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d test_db" ]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+  webapp:
+    build: .
+    command: ["./manage.py","test"]
+    environment:
+      - POSTGRES_NAME=test_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - DB_HOST=db
+    links:
+      - db
+    depends_on:
+      db:
+        condition: service_healthy
