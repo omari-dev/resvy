@@ -17,6 +17,8 @@ Including another URLconf
 from django.urls import path, include
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+from drf_spectacular.views import SpectacularAPIView
+
 
 urlpatterns = [
 
@@ -27,4 +29,6 @@ urlpatterns = [
     path('v1/', include('users.urls'), name='users'),
     path('v1/', include('reservations.urls'), name='reservations'),
 
+    # To get latest API schema through an API
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
 ]

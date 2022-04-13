@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'django_extensions',
+    'drf_spectacular',
     # LOCAL_APPS
     'users',
     'reservations'
@@ -129,6 +130,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'DEFAULT_PERMISSION_CLASSES': (),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
@@ -163,4 +165,13 @@ CACHES = {
         'TIMEOUT': int(os.environ.get('CACHE_TIMEOUT', 500)),
     }
     # Todo: add fallback cache
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Rsvy APIs',
+    'DESCRIPTION': 'Sary assignment',
+    'VERSION': '0.0.1',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SERVERS': [{'url': 'http://127.0.0.1:8000', 'description': 'DEV'}],
+    'SERVE_PERMISSIONS': ('users.permissions.IsSuperUser',)
 }

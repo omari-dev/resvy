@@ -31,7 +31,7 @@ class TableTestCase(APITestCase):
         employee.groups.add(Role.objects.get(name=Role.EMPLOYEE))
         self.client.credentials(**employee.credentials)
         response = self.client.get(reverse('tables-api-list'))
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_anonymous_user_retrieve_tables_will_be_unauthorized(self):
         self.client.credentials(**{})
