@@ -4,5 +4,6 @@ __pycache__
 .gitignore
 Dockerfile
 .dockerignore
+.pycodestyle
 docker-compose.yaml
 docker-compose.test.yaml

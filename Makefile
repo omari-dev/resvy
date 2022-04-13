@@ -12,7 +12,7 @@ true:  ## will return true
 list: ## will list all Make command
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$' | xargs
 
-make run: ## running application server using docker compose up
+make run-server: ## running application server using docker compose up
 	${INFO} "Building docker compose"
 	@docker-compose build
 	${INFO} "Running docker compose"
@@ -29,5 +29,8 @@ docker_clean: ## delete dangled images
 	# Todo add filter to remove only app image
 	@docker images -q -f dangling=true  | xargs -I ARGS sudo docker rmi -f ARGS
 
-
+check-style: ## Check code style
+	${INFO} "Checking code style..."
+	@pycodestyle . --config=.pycodestyle
+	${INFO} "Done"
 ## TODO install venv

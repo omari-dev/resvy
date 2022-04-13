@@ -63,7 +63,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
         )
 
     @classmethod
-    def get_role(cls, user:User):
+    def get_role(cls, user: User):
         return RoleSerializer(instance=user.groups.last()).data
 
 
