@@ -20,10 +20,12 @@ make run-server: ## running application server using docker compose up
 
 test:  ## run application test
 	${INFO} "Building docker compose"
+	@docker-compose -f docker-compose.test.yaml build
+	${INFO} "test are running ... "
 	@docker-compose -f docker-compose.test.yaml up --exit-code-from webapp
 	${INFO} "Test is done"
-	${INFO} "Cleaning up "
-	@$(MAKE) docker_clean
+	#${INFO} "Cleaning up "
+#	@$(MAKE) docker_clean
 
 docker_clean: ## delete dangled images
 	# Todo add filter to remove only app image

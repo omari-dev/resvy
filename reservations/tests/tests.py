@@ -1,3 +1,8 @@
+import datetime
+
+from unittest import mock
+
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
@@ -5,7 +10,7 @@ from rest_framework.test import APITestCase
 from users.models import Role
 from users.tests.factories import UserWithTokenFactory
 from .factories import TableFactory
-from ..models import Table
+from ..models import Table, Reservation
 
 
 class TableTestCase(APITestCase):
@@ -63,3 +68,194 @@ class TableTestCase(APITestCase):
         self.assertFalse(Table.objects.filter(pk=table.pk).exists())
 
     # TODO: cover tables can not be deleted
+
+
+class AvailabilityTestCases(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user = UserWithTokenFactory()
+        cls.admin_user.groups.add(Role.objects.get(name=Role.ADMIN))
+
+    def setUp(self) -> None:
+        self.client.credentials(**self.admin_user.credentials)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 14, 00))
+    def test_first_scenario_in_the_assignment_success(self, _):
+        Table.objects.create(number=1, number_of_seats=2)
+        response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=2')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        expected_result = ['02:00 PM', '11:59 PM']
+        time_slot = response.json()[0]['availability'][0]
+        returned_time_slots = [time_slot[0], time_slot[1]]
+        self.assertEqual(expected_result, returned_time_slots)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 13, 00))
+    def test_second_scenario_in_the_assignment_success(self, _):
+        table = Table.objects.create(number=1, number_of_seats=4)
+
+        Reservation.objects.create(
+            date=datetime.date(2030, 1, 1),
+            from_time=datetime.time(16, 00),
+            to_time=datetime.time(16, 30),
+            table=table,
+            persons=3
+        )
+        Reservation.objects.create(
+            date=datetime.date(2030, 1, 1),
+            from_time=datetime.time(17, 30),
+            to_time=datetime.time(17, 45),
+            table=table,
+            persons=5
+        )
+        response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=3')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        time_slots = response.json()[0]['availability']
+        self.assertIn(["01:00 PM", "04:00 PM"], time_slots)
+        self.assertIn(["04:30 PM", "05:30 PM"], time_slots)
+        self.assertIn(["05:45 PM", "11:59 PM"], time_slots)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 5, 00))
+    def test_check_availability_before_working_hours(self, _):
+        Table.objects.create(number=1, number_of_seats=3)
+        response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=3')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        expected_result = ['12:00 PM', '11:59 PM']
+        time_slot = response.json()[0]['availability'][0]
+        returned_time_slots = [time_slot[0], time_slot[1]]
+        self.assertEqual(expected_result, returned_time_slots)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 5, 00))
+    def test_return_empty_response_when_working_hours(self, _):
+        table = Table.objects.create(number=1, number_of_seats=3)
+        Reservation.objects.create(
+            date=datetime.date(2030, 1, 1),
+            from_time=datetime.time(12, 00),
+            to_time=datetime.time(23, 59),
+            table=table,
+            persons=3
+        )
+        response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=3')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        time_slot = response.json()[0]['availability']
+        self.assertFalse(time_slot)
+
+
+class ReservationTestCases(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user = UserWithTokenFactory()
+        cls.admin_user.groups.add(Role.objects.get(name=Role.ADMIN))
+
+        cls.employee = UserWithTokenFactory()
+        cls.employee.groups.add(Role.objects.get(name=Role.EMPLOYEE))
+
+    def setUp(self) -> None:
+        self.client.credentials(**self.admin_user.credentials)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 17, 00))
+    def test_admin_create_a_reservation_for_with_no_other_reservation_will_success(self, _):
+        """ the most easy test will handle restaurant with one table with no other reservation """
+        table = Table.objects.create(number=1, number_of_seats=2)
+        data = {'from_time': '17:30', "to_time": "18:00", 'persons': 2, 'table': table.id}
+        response = self.client.post(reverse('reservation-api-list'), data=data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            Reservation.objects.filter(table=table, from_time=data['from_time'], to_time=data['to_time']).exists()
+        )
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 17, 00))
+    def test_employee_create_a_reservation_for_with_no_other_reservation_will_success(self, _):
+        self.client.credentials(**self.employee.credentials)
+        table = Table.objects.create(number=1, number_of_seats=3)
+        data = {'from_time': '17:30', "to_time": "18:00", 'persons': 3, 'table': table.id}
+        response = self.client.post(reverse('reservation-api-list'), data=data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            Reservation.objects.filter(table=table, from_time=data['from_time'], to_time=data['to_time']).exists()
+        )
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 17, 00))
+    def test_admin_reserve_table_for_only_one_person_with_table_for_two_success(self, _):
+        table = Table.objects.create(number=1, number_of_seats=2)
+        data = {'from_time': '17:30', "to_time": "18:00", 'persons': 1, 'table': table.id}
+        response = self.client.post(reverse('reservation-api-list'), data=data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            Reservation.objects.filter(table=table, from_time=data['from_time'], to_time=data['to_time']).exists()
+        )
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 17, 00))
+    def test_admin_reserve_time_slot_before_restaurant_opens_will_fail(self, _):
+        table = Table.objects.create(number=1, number_of_seats=1)
+        data = {'from_time': '11:30', "to_time": "15:00", 'persons': 1, 'table': table.id}
+        response = self.client.post(reverse('reservation-api-list'), data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            Reservation.objects.filter(table=table, from_time=data['from_time'], to_time=data['to_time']).exists()
+        )
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 18, 00))
+    def test_admin_reserve_past_time_slot_will_fail(self, _):
+        table = Table.objects.create(number=1, number_of_seats=1)
+        data = {'from_time': '17:30', "to_time": "18:30", 'persons': 1, 'table': table.id}
+        response = self.client.post(reverse('reservation-api-list'), data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            Reservation.objects.filter(table=table, from_time=data['from_time'], to_time=data['to_time']).exists()
+        )
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 18, 00))
+    def test_admin_reserve_invalid_date_duration_will_fail(self, _):
+        table = Table.objects.create(number=1, number_of_seats=4)
+        data = {'from_time': '17:30', "to_time": "16:30", 'persons': 4, 'table': table.id}
+        response = self.client.post(reverse('reservation-api-list'), data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            Reservation.objects.filter(table=table, from_time=data['from_time'], to_time=data['to_time']).exists()
+        )
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 18, 00))
+    def test_admin_reserve_malformed_date_duration_will_fail(self, _):
+        table = Table.objects.create(number=1, number_of_seats=3)
+        data = {'from_time': '1730', "to_time": "18:30", 'persons': 2, 'table': table.id}
+        response = self.client.post(reverse('reservation-api-list'), data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Time has wrong format.', response.json()['from_time'][0])
+
+
+class AvailabilityAndReservationIntegrationTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user = UserWithTokenFactory()
+        cls.admin_user.groups.add(Role.objects.get(name=Role.ADMIN))
+
+        cls.employee = UserWithTokenFactory()
+        cls.employee.groups.add(Role.objects.get(name=Role.EMPLOYEE))
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 17, 00))
+    def test_availability_response_api_will_be_change_when_there_is_new_reservation(self, _):
+        self.client.force_authenticate(self.admin_user)
+        table = Table.objects.create(number=1, number_of_seats=4)
+        response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=3')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        expected_result = ['05:00 PM', '11:59 PM']
+
+        time_slot = response.json()[0]['availability'][0]
+        returned_time_slots = [time_slot[0], time_slot[1]]
+        self.assertEqual(expected_result, returned_time_slots)
+
+        data = {'from_time': '19:30', "to_time": "20:00", 'persons': 3, 'table': table.id}
+        response = self.client.post(reverse('reservation-api-list'), data=data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            Reservation.objects.filter(table=table, from_time=data['from_time'], to_time=data['to_time']).exists()
+        )
+
+        second_response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=3')
+        self.assertEqual(second_response.status_code, second_response.status_code)
+        self.assertNotEqual(second_response.json()[0]['availability'][0], expected_result)
+
+        time_slot = second_response.json()[0]['availability']
+        self.assertIn(['05:00 PM', '07:30 PM'], time_slot)
+        self.assertIn(['08:00 PM', '11:59 PM'], time_slot)
