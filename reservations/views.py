@@ -12,7 +12,7 @@ from .filters import ReservationDateFilter
 from .models import Table, Reservation
 from .permissions import CanManageTables, CanManageReservation
 from .serializers import TableSerializer, ReservationSerializer, TableAvailabilitySerializer
-from .utils import get_fit_table_size
+from .utils import get_fit_table_size, openapi_ready
 
 
 class TableView(mixins.ListModelMixin, mixins.DestroyModelMixin, mixins.CreateModelMixin, GenericViewSet):
@@ -36,14 +36,16 @@ class TableView(mixins.ListModelMixin, mixins.DestroyModelMixin, mixins.CreateMo
         return Response(serializer.data)
 
 
-class ReservationView(mixins.ListModelMixin,mixins.DestroyModelMixin,  mixins.CreateModelMixin, GenericViewSet):
+class ReservationView(mixins.ListModelMixin, mixins.DestroyModelMixin,  mixins.CreateModelMixin, GenericViewSet):
     serializer_class = ReservationSerializer
+    queryset = Reservation.objects.all()
     permission_classes = (IsAuthenticated, CanManageReservation)
     filter_backends = [filters.OrderingFilter, DjangoFilterBackend]
     filter_class = ReservationDateFilter
     ordering_fields = ['from_time', 'to_time']
     ordering = ['from_time', ]
 
+    @openapi_ready
     def get_queryset(self):
         queryset = Reservation.objects.all()
         if self.request.user.is_employee:
@@ -55,4 +57,3 @@ class ReservationView(mixins.ListModelMixin,mixins.DestroyModelMixin,  mixins.Cr
     @extend_schema(parameters=[OpenApiParameter(name="all", required=False, type=bool, default=False), ], )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
-

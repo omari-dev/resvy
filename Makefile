@@ -22,7 +22,7 @@ test:  ## run application test
 	${INFO} "Building docker compose"
 	@docker-compose -f docker-compose.test.yaml build
 	${INFO} "test are running ... "
-	@docker-compose -f docker-compose.test.yaml up --exit-code-from webapp
+	@docker-compose -f docker-compose.test.yaml up --exit-code-from webapp --abort-on-container-exit
 	${INFO} "Test is done"
 #	${INFO} "Cleaning up "
 #	@$(MAKE) docker_clean
