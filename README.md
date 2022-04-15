@@ -19,7 +19,7 @@ Reservation system that solves restaurant reservation problem
 
 ## Running Resvy Locally <a name="resvy-locally"></a>
 
-Simply by running this command ``make run-server`` and the web application will be available on http://127.0.0.1:8000]
+Simply by running this command ``make run-server`` and the web application will be available on http://127.0.0.1:8000
 
 ---
 
