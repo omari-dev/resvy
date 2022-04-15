@@ -18,8 +18,6 @@ class CanManageReservation(permissions.BasePermission):
         return request.user.has_perm('reservations.can_manage_reservation')
 
     def has_object_permission(self, request, view, reservation: Reservation):
-        if not request.method.lower() == 'delete':
-            return True
-        if reservation.is_in_future:
-            return True
-        raise exceptions.PermissionDenied(_('You can\'t delete reservation in the past'))
+        if request.method.lower() == 'delete' and not reservation.is_in_future:
+            raise exceptions.PermissionDenied(_('You can\'t delete reservation in the past'))
+        return True

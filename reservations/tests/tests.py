@@ -320,7 +320,7 @@ class ListReservationTestCases(APITestCase):
         self.assertEqual(data['count'], 2)
 
 
-class DeleteTestCases(APITestCase):
+class DeleteReservationTestCases(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.admin_user = UserWithTokenFactory()

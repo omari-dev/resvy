@@ -47,11 +47,9 @@ class ReservationView(mixins.ListModelMixin, mixins.DestroyModelMixin,  mixins.C
 
     @openapi_ready
     def get_queryset(self):
-        queryset = Reservation.objects.all()
-        if self.request.user.is_employee:
-            queryset = queryset.today()
-        elif self.request.user.is_admin and self.request.query_params.get('all', 'false').lower() == 'false':
-            queryset = queryset.today()
+        queryset = Reservation.objects.today()
+        if self.request.user.is_admin and self.request.query_params.get('all', 'false').lower() == 'true':
+            queryset = Reservation.objects.all()
         return queryset
 
     @extend_schema(parameters=[OpenApiParameter(name="all", required=False, type=bool, default=False), ], )
