@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     # Third apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'django_filters',
     'django_extensions',
     'drf_spectacular',
     # LOCAL_APPS
@@ -132,10 +133,11 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'DEFAULT_PERMISSION_CLASSES': (),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'PAGE_SIZE': 100,
+    'TIME_FORMAT': '%I:%M %p',
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
-    'PAGE_SIZE': 100
 }
 
 SIMPLE_JWT = {
@@ -155,17 +157,19 @@ SIMPLE_JWT = {
 LOGIN_URL = '/v1/auth/login/'
 AUTH_USER_MODEL = 'users.User'
 
+REDIS_CACHE = {
+    'BACKEND': 'django_redis.cache.RedisCache',
+    'LOCATION': 'redis://{}/'.format(os.environ.get('REDIS_URL', 'redis:6379')),
+    'OPTIONS': {
+        'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        'PASSWORD': os.environ.get('REDIS_PASSWORD', ''),
+    },
+    'TIMEOUT': int(os.environ.get('CACHE_TIMEOUT', 500)),
+}
+REDIS_ENABLED = os.getenv('REDIS_ENABLED', 0)
+
 CACHES = {
-    "default": {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://{}/'.format(os.environ.get('REDIS_URL', 'redis:6379')),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PASSWORD': os.environ.get('REDIS_PASSWORD', ''),
-        },
-        'TIMEOUT': int(os.environ.get('CACHE_TIMEOUT', 500)),
-    }
-    # Todo: add fallback cache
+    'default': REDIS_CACHE if REDIS_ENABLED else {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}
 }
 
 SPECTACULAR_SETTINGS = {
@@ -174,9 +178,8 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '0.0.1',
     'SERVE_INCLUDE_SCHEMA': False,
     'SERVERS': [{'url': 'http://127.0.0.1:8000', 'description': 'DEV'}],
-    'SERVE_PERMISSIONS': ('users.permissions.IsSuperUser',)
+    # 'SERVE_PERMISSIONS': ('users.permissions.IsSuperUser',)
 }
-
 
 RESERVATION_STARTING_FROM_TIME = parse_time(os.getenv('RESERVATION_STARTING_FROM_TIME', '12:00'))
 RESERVATION_ENDS_AT_TIME = parse_time(os.getenv('RESERVATION_ENDS_AT_TIME', '23:59'))

@@ -1,5 +1,7 @@
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Table, Reservation
@@ -24,6 +26,7 @@ class TableAvailabilitySerializer(serializers.ModelSerializer):
     def _format_string_time(cls, string_time):
         return string_time.strftime("%I:%M %p")
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_availability(self, table: Table):
         slots = check_availability_for_table(table)
         formatted_slots = []

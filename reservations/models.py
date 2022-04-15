@@ -24,7 +24,7 @@ class Table(models.Model):
 
     @property
     def can_be_deleted(self) -> bool:
-        return True
+        return not self.reservations.today().upcoming()
 
 
 class ReservationQuerySet(models.QuerySet):
@@ -69,8 +69,9 @@ class Reservation(models.Model):
         )
 
     @property
-    def can_be_deleted(self):
-        return True
+    def is_in_future(self):
+        now = timezone.now()
+        return self.date >= now.date() and self.from_time >= now.time()
 
     def __str__(self):
         return f'{self.date}: {self.from_time}-{self.to_time}'

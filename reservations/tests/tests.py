@@ -1,5 +1,4 @@
 import datetime
-
 from unittest import mock
 
 from django.utils import timezone
@@ -67,7 +66,20 @@ class TableTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Table.objects.filter(pk=table.pk).exists())
 
-    # TODO: cover tables can not be deleted
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2025, 1, 1, 17, 00))
+    def test_admin_delete_table_which_has_upcoming_reservation_will_fail(self, _):
+        table = TableFactory()
+        Reservation.objects.create(
+            date=datetime.date(2025, 1, 1),
+            from_time=datetime.time(19, 00),
+            to_time=datetime.time(19, 30),
+            table=table,
+            persons=3
+        )
+        url = reverse('tables-api-detail', kwargs={'pk': table.pk})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Table.objects.filter(pk=table.pk).exists())
 
 
 class AvailabilityTestCases(APITestCase):
@@ -222,6 +234,141 @@ class ReservationTestCases(APITestCase):
         response = self.client.post(reverse('reservation-api-list'), data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Time has wrong format.', response.json()['from_time'][0])
+
+
+class ListReservationTestCases(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user = UserWithTokenFactory()
+        cls.admin_user.groups.add(Role.objects.get(name=Role.ADMIN))
+
+        cls.employee = UserWithTokenFactory()
+        cls.employee.groups.add(Role.objects.get(name=Role.EMPLOYEE))
+
+        # Todo: use factory instead
+        table = Table.objects.create(number=1, number_of_seats=2)
+        cls.reservation1 = Reservation.objects.create(
+            date=datetime.date(2030, 1, 1),
+            from_time=datetime.time(16, 00),
+            to_time=datetime.time(16, 30),
+            table=table,
+            persons=3
+        )
+        cls.reservation2 = Reservation.objects.create(
+            date=datetime.date(2030, 1, 1),
+            from_time=datetime.time(17, 00),
+            to_time=datetime.time(17, 30),
+            table=table,
+            persons=3
+        )
+
+        cls.reservation3 = Reservation.objects.create(
+            date=datetime.date(2005, 1, 1),
+            from_time=datetime.time(17, 00),
+            to_time=datetime.time(17, 30),
+            table=table,
+            persons=3
+        )
+        cls.list_reservation_url = reverse('reservation-api-list')
+
+    def setUp(self) -> None:
+        self.client.credentials(**self.admin_user.credentials)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 15, 00))
+    def test_admin_list_today_reservation_success(self, _):
+        response = self.client.get(self.list_reservation_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['count'], 2)
+        returned_reservation_ids = [res['id'] for res in data['results']]
+        self.assertIn(self.reservation1.id, returned_reservation_ids)
+        self.assertIn(self.reservation2.id, returned_reservation_ids)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 15, 00))
+    def test_employee_list_today_reservation_success(self, _):
+        self.client.credentials(**self.employee.credentials)
+        response = self.client.get(self.list_reservation_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['count'], 2)
+        returned_reservation_ids = [res['id'] for res in data['results']]
+        self.assertIn(self.reservation1.id, returned_reservation_ids)
+        self.assertIn(self.reservation2.id, returned_reservation_ids)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2035, 1, 1, 18, 00))
+    def test_past_reservation_will_not_be_returned_by_default(self, _):
+        self.client.credentials(**self.employee.credentials)
+        response = self.client.get(self.list_reservation_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['count'], 0)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2035, 1, 1, 18, 00))
+    def test_admin_list_all_reservation_success(self, _):
+        self.client.credentials(**self.admin_user.credentials)
+        response = self.client.get(self.list_reservation_url + '?all=true')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['count'], 3)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 18, 00))
+    def test_employee_tries_to_list_all_reservation_will_be_ignored(self, _):
+        self.client.credentials(**self.employee.credentials)
+        response = self.client.get(self.list_reservation_url + '?all=true')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data['count'], 2)
+
+
+class DeleteTestCases(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user = UserWithTokenFactory()
+        cls.admin_user.groups.add(Role.objects.get(name=Role.ADMIN))
+
+        cls.employee = UserWithTokenFactory()
+        cls.employee.groups.add(Role.objects.get(name=Role.EMPLOYEE))
+
+    def setUp(self) -> None:
+        self.client.credentials(**self.admin_user.credentials)
+        # Todo: use factory instead
+        table = Table.objects.create(number=1, number_of_seats=2)
+
+        self.reservation = Reservation.objects.create(
+            date=datetime.date(2030, 1, 1),
+            from_time=datetime.time(16, 00),
+            to_time=datetime.time(16, 30),
+            table=table,
+            persons=3
+        )
+        self.past_reservation = Reservation.objects.create(
+            date=datetime.date(2006, 1, 1),
+            from_time=datetime.time(17, 00),
+            to_time=datetime.time(17, 30),
+            table=table,
+            persons=3
+        )
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 13, 00))
+    def test_admin_delete_today_reservation_success(self, _):
+        url = reverse('reservation-api-detail', kwargs={'pk': self.reservation.pk})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Reservation.objects.filter(pk=self.reservation.pk).exists())
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 13, 00))
+    def test_employee_delete_today_reservation_success(self, _):
+        url = reverse('reservation-api-detail', kwargs={'pk': self.reservation.pk})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Reservation.objects.filter(pk=self.reservation.pk).exists())
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 13, 00))
+    def test_admin_delete_past_reservation_forbidden(self, _):
+        url = reverse('reservation-api-detail', kwargs={'pk': self.past_reservation.pk})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Reservation.objects.filter(pk=self.past_reservation.pk).exists())
 
 
 class AvailabilityAndReservationIntegrationTestCase(APITestCase):

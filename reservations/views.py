@@ -1,16 +1,17 @@
 from django.utils.translation import gettext_lazy as _
-
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework import mixins, status
+from rest_framework import mixins, status, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from .filters import ReservationDateFilter
 from .models import Table, Reservation
-from .serializers import TableSerializer, ReservationSerializer, TableAvailabilitySerializer
 from .permissions import CanManageTables, CanManageReservation
+from .serializers import TableSerializer, ReservationSerializer, TableAvailabilitySerializer
 from .utils import get_fit_table_size
 
 
@@ -35,7 +36,26 @@ class TableView(mixins.ListModelMixin, mixins.DestroyModelMixin, mixins.CreateMo
         return Response(serializer.data)
 
 
-class ReservationView(mixins.ListModelMixin, mixins.DestroyModelMixin, mixins.CreateModelMixin, GenericViewSet):
+class ReservationView(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
+    serializer_class = ReservationSerializer
+    permission_classes = (IsAuthenticated, CanManageReservation)
+    filter_backends = [filters.OrderingFilter, DjangoFilterBackend]
+    filter_class = ReservationDateFilter
+    ordering_fields = ['from_time', 'to_time']
+    ordering = ['from_time', ]
+
+    def get_queryset(self):
+        queryset = Reservation.objects.today()
+        if self.request.query_params.get('all', 'false').lower() == 'true' and self.request.user.is_admin:
+            queryset = Reservation.objects.all()
+        return queryset
+
+    @extend_schema(parameters=[OpenApiParameter(name="all", required=False, type=bool, default=False), ], )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+class DeleteReservationView(mixins.DestroyModelMixin, GenericViewSet):
     serializer_class = ReservationSerializer
     permission_classes = (IsAuthenticated, CanManageReservation)
     queryset = Reservation.objects.all()

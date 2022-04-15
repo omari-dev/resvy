@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.core.cache import cache
 from django.core.validators import MinLengthValidator
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 
@@ -61,12 +62,20 @@ class User(AbstractUser):
     def __str__(self):
         return f'{self.employee_no}: {self.first_name} {self.last_name}'
 
-    def get_role(self):
+    def get_roles(self):
         roles = cache.get(self.employee_no)
         if not roles:
             roles = list(self.groups.all().values_list('name', flat=True))
             cache.set(self.employee_no, roles)
         return roles
+
+    @cached_property
+    def is_admin(self):
+        return self.groups.filter(name=Role.ADMIN)
+
+    @cached_property
+    def is_employee(self):
+        return self.groups.filter(name=Role.EMPLOYEE)
 
 
 class Role(Group):

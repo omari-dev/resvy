@@ -24,7 +24,7 @@ test:  ## run application test
 	${INFO} "test are running ... "
 	@docker-compose -f docker-compose.test.yaml up --exit-code-from webapp
 	${INFO} "Test is done"
-	#${INFO} "Cleaning up "
+#	${INFO} "Cleaning up "
 #	@$(MAKE) docker_clean
 
 docker_clean: ## delete dangled images
