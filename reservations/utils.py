@@ -38,18 +38,18 @@ def check_availability_for_table(table):
 
     end_time = settings.RESERVATION_ENDS_AT_TIME
     today_reservations = Reservation.objects.today().on_table(table).upcoming().values_list('from_time', 'to_time')
-    fake_reservation = (end_time, start_time)
+    time_boundary = (start_time, end_time)
 
     # Todo: handle below two edge cases in more propre way
     if not today_reservations:
         # Handle no reservation
         return [(start_time, end_time)]
 
-    if today_reservations[0] == tuple(reversed(fake_reservation)):
+    if today_reservations[0] == tuple(time_boundary):
         # Handle one reservation for the whole day
         return []
 
-    slot_entries = sorted(itertools.chain(fake_reservation, *today_reservations))
+    slot_entries = sorted(itertools.chain(time_boundary, *today_reservations))
     return split_list_to_check(slot_entries)
 
 

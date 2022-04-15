@@ -179,6 +179,7 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'SERVERS': [{'url': 'http://127.0.0.1:8000', 'description': 'DEV'}],
     # 'SERVE_PERMISSIONS': ('users.permissions.IsSuperUser',)
+    'SCHEMA_PATH_PREFIX': r'/v[0-9]',
 }
 
 RESERVATION_STARTING_FROM_TIME = parse_time(os.getenv('RESERVATION_STARTING_FROM_TIME', '12:00'))

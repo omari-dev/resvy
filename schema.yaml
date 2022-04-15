@@ -6,12 +6,12 @@ info:
 paths:
   /v1/auth/login/:
     post:
-      operationId: v1_auth_login_create
+      operationId: auth_login_create
       description: |-
         Takes a set of user credentials and returns an access and refresh JSON web
         token pair to prove the authentication of those credentials.
       tags:
-      - v1
+      - auth
       requestBody:
         content:
           application/json:
@@ -33,12 +33,12 @@ paths:
           description: ''
   /v1/auth/token/refresh/:
     post:
-      operationId: v1_auth_token_refresh_create
+      operationId: auth_token_refresh_create
       description: |-
         Takes a refresh type JSON web token and returns an access type JSON web
         token if the refresh token is valid.
       tags:
-      - v1
+      - auth
       requestBody:
         content:
           application/json:
@@ -60,12 +60,12 @@ paths:
           description: ''
   /v1/auth/token/verify/:
     post:
-      operationId: v1_auth_token_verify_create
+      operationId: auth_token_verify_create
       description: |-
         Takes a token and indicates if it is valid.  This view provides no
         information about a token's fitness for a particular use.
       tags:
-      - v1
+      - auth
       requestBody:
         content:
           application/json:
@@ -85,9 +85,103 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenVerify'
           description: ''
+  /v1/reservations/:
+    get:
+      operationId: reservations_list
+      parameters:
+      - in: query
+        name: all
+        schema:
+          type: boolean
+          default: false
+      - in: query
+        name: from_time
+        schema:
+          type: string
+          format: date
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: table
+        schema:
+          type: integer
+      - in: query
+        name: to_time
+        schema:
+          type: string
+          format: date
+      tags:
+      - reservations
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReservationList'
+          description: ''
+    post:
+      operationId: reservations_create
+      tags:
+      - reservations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reservation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Reservation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reservation'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: ''
+  /v1/reservations/{id}/:
+    delete:
+      operationId: reservations_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /v1/tables/:
     get:
-      operationId: v1_tables_list
+      operationId: tables_list
       parameters:
       - name: limit
         required: false
@@ -102,7 +196,7 @@ paths:
         schema:
           type: integer
       tags:
-      - v1
+      - tables
       security:
       - jwtAuth: []
       responses:
@@ -113,9 +207,9 @@ paths:
                 $ref: '#/components/schemas/PaginatedTableList'
           description: ''
     post:
-      operationId: v1_tables_create
+      operationId: tables_create
       tags:
-      - v1
+      - tables
       requestBody:
         content:
           application/json:
@@ -139,7 +233,7 @@ paths:
           description: ''
   /v1/tables/{id}/:
     delete:
-      operationId: v1_tables_destroy
+      operationId: tables_destroy
       parameters:
       - in: path
         name: id
@@ -148,17 +242,37 @@ paths:
         description: A unique integer value identifying this table.
         required: true
       tags:
-      - v1
+      - tables
       security:
       - jwtAuth: []
       responses:
         '204':
           description: No response body
-  /v1/users/register/:
-    post:
-      operationId: v1_users_register_create
+  /v1/tables/availability/:
+    get:
+      operationId: tables_availability_retrieve
+      parameters:
+      - in: query
+        name: number_of_persons
+        schema:
+          type: integer
+        required: true
       tags:
-      - v1
+      - tables
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableAvailability'
+          description: ''
+  /v1/users/employees/:
+    post:
+      operationId: users_employees_create
+      tags:
+      - users
       requestBody:
         content:
           application/json:
@@ -204,6 +318,26 @@ components:
       - first_name
       - last_name
       - password
+    PaginatedReservationList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reservation'
     PaginatedTableList:
       type: object
       properties:
@@ -224,6 +358,30 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Table'
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        from_time:
+          type: string
+          format: time
+        to_time:
+          type: string
+          format: time
+        table:
+          type: integer
+        persons:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+      required:
+      - from_time
+      - id
+      - table
+      - to_time
     Table:
       type: object
       properties:
@@ -241,6 +399,34 @@ components:
           minimum: 1
           nullable: true
       required:
+      - id
+      - number
+    TableAvailability:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Table Number
+        number_of_seats:
+          type: integer
+          maximum: 12
+          minimum: 1
+          nullable: true
+        for_date:
+          type: string
+          format: date
+          default: '2022-04-15'
+        availability:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+      required:
+      - availability
       - id
       - number
     TokenRefresh:
