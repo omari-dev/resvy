@@ -364,10 +364,10 @@ class DeleteTestCases(APITestCase):
         self.assertFalse(Reservation.objects.filter(pk=self.reservation.pk).exists())
 
     @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 13, 00))
-    def test_admin_delete_past_reservation_forbidden(self, _):
+    def test_admin_delete_past_reservation_fail(self, _):
         url = reverse('reservation-api-detail', kwargs={'pk': self.past_reservation.pk})
         response = self.client.delete(url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Reservation.objects.filter(pk=self.past_reservation.pk).exists())
 
 

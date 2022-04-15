@@ -1,6 +1,6 @@
 .PHONY: help deploy list test true
 
-
+VENV=venv
 PROJECT_NAME ?= health-plus
 BLUE := "\e[1;34m"
 NC := "\e[0m"

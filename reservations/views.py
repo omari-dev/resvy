@@ -36,7 +36,7 @@ class TableView(mixins.ListModelMixin, mixins.DestroyModelMixin, mixins.CreateMo
         return Response(serializer.data)
 
 
-class ReservationView(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
+class ReservationView(mixins.ListModelMixin,mixins.DestroyModelMixin,  mixins.CreateModelMixin, GenericViewSet):
     serializer_class = ReservationSerializer
     permission_classes = (IsAuthenticated, CanManageReservation)
     filter_backends = [filters.OrderingFilter, DjangoFilterBackend]
@@ -45,17 +45,14 @@ class ReservationView(mixins.ListModelMixin, mixins.CreateModelMixin, GenericVie
     ordering = ['from_time', ]
 
     def get_queryset(self):
-        queryset = Reservation.objects.today()
-        if self.request.query_params.get('all', 'false').lower() == 'true' and self.request.user.is_admin:
-            queryset = Reservation.objects.all()
+        queryset = Reservation.objects.all()
+        if self.request.user.is_employee:
+            queryset = queryset.today()
+        elif self.request.user.is_admin and self.request.query_params.get('all', 'false').lower() == 'false':
+            queryset = queryset.today()
         return queryset
 
     @extend_schema(parameters=[OpenApiParameter(name="all", required=False, type=bool, default=False), ], )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-
-class DeleteReservationView(mixins.DestroyModelMixin, GenericViewSet):
-    serializer_class = ReservationSerializer
-    permission_classes = (IsAuthenticated, CanManageReservation)
-    queryset = Reservation.objects.all()
