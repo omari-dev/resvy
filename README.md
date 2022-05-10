@@ -1,5 +1,5 @@
 ![Build](https://github.com/omari-dev/resvy/actions/workflows/ci.yml/badge.svg)
-[![codecov](https://codecov.io/gh/omari-dev/resvy/branch/main/graph/badge.svg?token=40D1HAOGWS)](https://codecov.io/gh/omari-dev/resvy)
+[![codecov](https://codecov.io/gh/omari-dev/resvy/branch/main/graph/badge.svg)](https://codecov.io/gh/omari-dev/resvy)
 
 # Resvy
 
