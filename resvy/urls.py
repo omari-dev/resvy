@@ -32,4 +32,6 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 
+    path('v1/healthz/', include('health_check.urls')),
+
 ]

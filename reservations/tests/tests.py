@@ -92,7 +92,7 @@ class AvailabilityTestCases(APITestCase):
         self.client.credentials(**self.admin_user.credentials)
 
     @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 14, 00))
-    def test_first_scenario_in_the_assignment_success(self, _):
+    def test_first_scenario_success(self, _):
         Table.objects.create(number=1, number_of_seats=2)
         response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=2')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -102,7 +102,7 @@ class AvailabilityTestCases(APITestCase):
         self.assertEqual(expected_result, returned_time_slots)
 
     @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 13, 00))
-    def test_second_scenario_in_the_assignment_success(self, _):
+    def test_second_scenario_success(self, _):
         table = Table.objects.create(number=1, number_of_seats=4)
 
         Reservation.objects.create(
@@ -151,6 +151,20 @@ class AvailabilityTestCases(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         time_slot = response.json()[0]['availability']
         self.assertFalse(time_slot)
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 5, 00))
+    def test_when_admin_pass_invalid_number_of_person_will_fail(self, _):
+        Table.objects.create(number=1, number_of_seats=2)
+        response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=ABC')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # todo check for the response payload
+
+    @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 5, 00))
+    def test_admin_check_table_for_exceed_number_of_person_will_fail(self, _):
+        Table.objects.create(number=1, number_of_seats=2)
+        response = self.client.get(reverse('tables-api-availability') + '?number_of_persons=500')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # todo check for the response payload
 
 
 class ReservationTestCases(APITestCase):
@@ -358,6 +372,7 @@ class DeleteReservationTestCases(APITestCase):
 
     @mock.patch.object(timezone, 'now', return_value=datetime.datetime(2030, 1, 1, 13, 00))
     def test_employee_delete_today_reservation_success(self, _):
+        self.client.credentials(**self.employee.credentials)
         url = reverse('reservation-api-detail', kwargs={'pk': self.reservation.pk})
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)

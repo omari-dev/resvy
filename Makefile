@@ -24,15 +24,25 @@ test:  ## run application test
 	${INFO} "test are running ... "
 	@docker-compose -f docker-compose.test.yaml up --exit-code-from webapp --abort-on-container-exit
 	${INFO} "Test is done"
-#	${INFO} "Cleaning up "
-#	@$(MAKE) docker_clean
+	${INFO} "Cleaning up "
+	@$(MAKE) test_clean
 
-docker_clean: ## delete dangled images
+test_clean: ## clean up docker compose
+	@docker-compose -f docker-compose.test.yaml down
 	# Todo add filter to remove only app image
-	@docker images -q -f dangling=true  | xargs -I ARGS sudo docker rmi -f ARGS
+	@#docker images -q -f dangling=true  | xargs -I ARGS sudo docker rmi -f ARGS
 
 check-style: ## Check code style
 	${INFO} "Checking code style..."
 	@pycodestyle . --config=.pycodestyle
 	${INFO} "Done"
 ## TODO install venv
+
+
+publish-coverage:
+	${INFO} "Building docker compose"
+	@docker-compose -f docker-compose.coverage.yaml  build
+	${INFO} "test are running ... "
+	@NAME=OMAR_ALAMRI docker-compose -f docker-compose.coverage.yaml up --exit-code-from webapp --abort-on-container-exit
+	${INFO} "Something else ... "
+	@docker-compose -f docker-compose.coverage.yaml down

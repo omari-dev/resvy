@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Rsvy APIs
   version: 0.0.1
-  description: Sary assignment
+  description: Reservation APIs
 paths:
   /v1/auth/login/:
     post:

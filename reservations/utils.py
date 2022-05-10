@@ -27,17 +27,17 @@ def get_start_reservation_time(time):
     return time if is_time_during_working_hour(time) else settings.RESERVATION_STARTING_FROM_TIME
 
 
-def split_list_to_check(lst, chunk_size=2):
-    for i in range(0, len(lst), chunk_size):
-        yield lst[i:i + chunk_size]
+def split_list_to_chunk(lst, chunk_size=2):
+    itr = iter(lst)
+    return iter(lambda: tuple(itertools.islice(itr, chunk_size)), ())
 
 
 def check_availability_for_table(table):
     from reservations.models import Reservation
     time = timezone.now().time()
     start_time = get_start_reservation_time(time)
-
     end_time = settings.RESERVATION_ENDS_AT_TIME
+
     today_reservations = Reservation.objects.today().on_table(table).upcoming().values_list('from_time', 'to_time')
     time_boundary = (start_time, end_time)
 
@@ -51,7 +51,7 @@ def check_availability_for_table(table):
         return []
 
     slot_entries = sorted(itertools.chain(time_boundary, *today_reservations))
-    return split_list_to_check(slot_entries)
+    return split_list_to_chunk(slot_entries)
 
 
 def get_fit_table_size(persons):

@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: configure
+      run: make test
+
+  Coverage:
+    name: Run and Publish Teset coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Checkout repo
+        run: |
+          echo CODECOV_TOKEN=${{ secrets.CODECOV_TOKEN }} >> docker-test.env
+          make publish-coverage

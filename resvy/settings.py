@@ -32,6 +32,14 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # Health checks
+    'health_check',  # required
+    'health_check.db',  # stock Django health checkers
+    'health_check.cache',
+    'health_check.storage',
+    'health_check.contrib.migrations',
+    'health_check.contrib.redis',  # requires Redis broker
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,6 +52,7 @@ INSTALLED_APPS = [
     'django_filters',
     'django_extensions',
     'drf_spectacular',
+    'coverage',
     # LOCAL_APPS
     'users',
     'reservations'
@@ -174,7 +183,7 @@ CACHES = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Rsvy APIs',
-    'DESCRIPTION': 'Sary assignment',
+    'DESCRIPTION': 'Reservation APIs',
     'VERSION': '0.0.1',
     'SERVE_INCLUDE_SCHEMA': False,
     'SERVERS': [{'url': 'http://127.0.0.1:8000', 'description': 'DEV'}],
@@ -184,3 +193,5 @@ SPECTACULAR_SETTINGS = {
 
 RESERVATION_STARTING_FROM_TIME = parse_time(os.getenv('RESERVATION_STARTING_FROM_TIME', '12:00'))
 RESERVATION_ENDS_AT_TIME = parse_time(os.getenv('RESERVATION_ENDS_AT_TIME', '23:59'))
+
+REDIS_CACHE.get('LOCATION', 'redis://redis:6379')

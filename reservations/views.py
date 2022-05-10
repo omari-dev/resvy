@@ -36,7 +36,7 @@ class TableView(mixins.ListModelMixin, mixins.DestroyModelMixin, mixins.CreateMo
         return Response(serializer.data)
 
 
-class ReservationView(mixins.ListModelMixin, mixins.DestroyModelMixin,  mixins.CreateModelMixin, GenericViewSet):
+class ReservationView(mixins.ListModelMixin, mixins.DestroyModelMixin, mixins.CreateModelMixin, GenericViewSet):
     serializer_class = ReservationSerializer
     queryset = Reservation.objects.all()
     permission_classes = (IsAuthenticated, CanManageReservation)

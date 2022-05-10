@@ -3,18 +3,20 @@ version: '3.9'
 services:
   db:
     image: postgres
+    env_file: resvy/docker-test.env
     tmpfs:
       - /var/lib/postgresql/data:rw
-    env_file: resvy/docker-test.env
+
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -d test_db" ]
       interval: 1s
       timeout: 5s
       retries: 5
   webapp:
-    build: .
+    container_name: application
+    build: ""
     env_file: resvy/docker-test.env
-    command: ["./manage.py","test",]
+    entrypoint: ./coverage.sh
     links:
       - db
     depends_on:

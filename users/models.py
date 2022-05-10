@@ -71,11 +71,11 @@ class User(AbstractUser):
 
     @cached_property
     def is_admin(self):
-        return self.groups.filter(name=Role.ADMIN)
+        return self.groups.filter(name=Role.ADMIN).exists()
 
     @cached_property
     def is_employee(self):
-        return self.groups.filter(name=Role.EMPLOYEE)
+        return self.groups.filter(name=Role.EMPLOYEE).exists()
 
 
 class Role(Group):

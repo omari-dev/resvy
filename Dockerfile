@@ -13,3 +13,5 @@ RUN pip install --upgrade pip && pip install -r $APP_HOME/requirements.txt
 COPY --chown=django . $APP_HOME
 
 WORKDIR $APP_HOME/
+
+RUN chmod 777 $APP_HOME/coverage.sh
